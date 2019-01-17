@@ -100,7 +100,7 @@ def main():
                         help='Resume the optimization from snapshot')
     parser.add_argument('--gpu', '-g', default=-1, type=int,
                         help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--epoch', '-e', default=20, type=int,
+    parser.add_argument('--epoch', '-e', default=1000, type=int,
                         help='number of epochs to learn')
     parser.add_argument('--dimz', '-z', default=80, type=int,
                         help='dimention of encoded vector')
@@ -108,9 +108,9 @@ def main():
                         help='learning minibatch size')
     parser.add_argument('--test', action='store_true',
                         help='Use tiny datasets for quick tests')
-    parser.add_argument('--out', '-o', type=str, default='./result/',
+    parser.add_argument('--out', '-o', type=str, default='./results/',
                         help='dir to save snapshots.')
-    parser.add_argument('--interval', '-i', type=int, default=1, help='interval of save images.')
+    parser.add_argument('--interval', '-i', type=int, default=20, help='interval of save images.')
     parser.add_argument
     args = parser.parse_args()
 
