@@ -57,7 +57,7 @@ def cut_img(x, number, width = CutSize, height = CutSize):
     x_out = []
     x_shape = x.shape
     
-    for i in range(number):
+    for i in tqdm(range(number)):
         shape_0 = np.random.randint(0,x_shape[0])
         shape_1 = np.random.randint(0,x_shape[1]-height)
         shape_2 = np.random.randint(0,x_shape[2]-width)
@@ -140,9 +140,9 @@ def main():
     test_img = data[950:1000,:,:,:]
     test_img = np.transpose(test_img, (0,3,1,2))
     # Prepare separated images
-    data = cut_img(data, 100000)
+    data = cut_img(data, 1000000)
     data = np.transpose(data, (0,3,1,2))
-    train, test = chainer.datasets.split_dataset(data, 80000)
+    train, test = chainer.datasets.split_dataset(data, 999900)
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
         repeat=False, shuffle=False)

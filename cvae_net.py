@@ -92,17 +92,21 @@ class CVAE(chainer.Chain):
         z = F.gaussian(mu, ln_var)
         outputs_mu, outputs_sigma_2 = self.decode(z)
         
+        a_vae_loss = F.log(2 * 3.14 * F.flatten(outputs_sigma_2))
+        a_vae_loss = 0.5 * F.sum(a_vae_loss)
+        
         m_vae_loss = (F.flatten(x) - F.flatten(outputs_mu))**2 / F.flatten(outputs_sigma_2)
         m_vae_loss = 0.5 * F.sum(m_vae_loss)
 
-        a_vae_loss = F.log(2 * 3.14 * F.flatten(outputs_sigma_2))
-        a_vae_loss = 0.5 * F.sum(a_vae_loss)
-
+        """
         kl_loss = 1 + ln_var - F.square(mu) - F.exp(ln_var)
         kl_loss = F.sum(kl_loss, axis=-1)
         kl_loss *= -0.5
-
-        loss = F.mean(kl_loss + m_vae_loss + a_vae_loss)
+        """
+        
+        d_vae_loss = F.gaussian_kl_divergence(mu, ln_var)
+        
+        loss = F.mean(d_vae_loss + m_vae_loss + a_vae_loss)
         
         chainer.report({'loss': loss}, self)
         return loss
@@ -166,10 +170,14 @@ class CVAE(chainer.Chain):
         a_vae_loss = F.log(2 * 3.14 * F.flatten(outputs_sigma_2))
         a_vae_loss = 0.5 * F.sum(a_vae_loss)
 
+        """
         kl_loss = 1 + ln_var - F.square(mu) - F.exp(ln_var)
         kl_loss = F.sum(kl_loss, axis=-1)
         kl_loss *= -0.5
+        """
 
-        self.loss = F.mean(kl_loss + m_vae_loss + a_vae_loss)
+        d_vae_loss = F.gaussian_kl_divergence(mu, ln_var)
+
+        self.loss = F.mean(d_vae_loss + m_vae_loss + a_vae_loss)
 
         return self.loss
