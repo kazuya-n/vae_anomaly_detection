@@ -56,24 +56,27 @@ class CVAE(chainer.Chain):
             e_c1=L.Convolution2D(n_ch * 1, n_ch * 2, 4, 2, 1, initialW=w),
             e_c2=L.Convolution2D(n_ch * 2, n_ch * 4, 4, 2, 1, initialW=w),
             e_c3=L.Convolution2D(n_ch * 4, n_ch * 8, 4, 2, 1, initialW=w),
+            
             e_bn0=L.BatchNormalization(n_ch, use_gamma=False),
             e_bn1=L.BatchNormalization(n_ch * 2, use_gamma=False),
             e_bn2=L.BatchNormalization(n_ch * 4, use_gamma=False),
             e_bn3=L.BatchNormalization(n_ch * 8, use_gamma=False),
+            
             z_mu=L.Linear(n_ch * 8, latent_dim),
             z_ln_var=L.Linear(n_ch * 8, latent_dim),
+            
             d_c0=L.Linear(n_ch*8),
             d_c1=L.Deconvolution2D(n_ch * 8, n_ch * 4, 4, 2, 1, initialW=w),
             d_c2=L.Deconvolution2D(n_ch * 4, n_ch * 2, 4, 2, 1, initialW=w),
             d_c3=L.Deconvolution2D(n_ch * 2, n_ch * 1, 4, 2, 1, initialW=w),
-            d_c4=L.Deconvolution2D(n_ch * 1, c_ch * 1, 4, 2, 1, initialW=w),
+            
             d_x1=L.Deconvolution2D(n_ch, c_ch, 4, 2, 1, initialW=w),
             d_x2=L.Deconvolution2D(n_ch, c_ch, 4, 2, 1, initialW=w),
+            
             d_bn0=L.BatchNormalization(n_ch * 4, use_gamma=False),
             d_bn1=L.BatchNormalization(n_ch * 2, use_gamma=False),
             d_bn2=L.BatchNormalization(n_ch * 1, use_gamma=False),
-            d_bn3=L.BatchNormalization(c_ch * 1, use_gamma=False),
-            d_bn4=L.BatchNormalization(c_ch * 1, use_gamma=False),
+            
             d_bnx1=L.BatchNormalization(c_ch, use_gamma=False),
             d_bnx2=L.BatchNormalization(c_ch, use_gamma=False),
         )
@@ -95,12 +98,6 @@ class CVAE(chainer.Chain):
         m_vae_loss = (F.flatten(x) - F.flatten(outputs_mu))**2 / F.flatten(outputs_sigma_2)
         m_vae_loss = 0.5 * F.sum(m_vae_loss)
 
-        """
-        kl_loss = 1 + ln_var - F.square(mu) - F.exp(ln_var)
-        kl_loss = F.sum(kl_loss, axis=-1)
-        kl_loss *= -0.5
-        """
-        
         d_vae_loss = F.gaussian_kl_divergence(mu, ln_var)
         
         loss = F.mean(d_vae_loss + m_vae_loss + a_vae_loss)
@@ -166,12 +163,6 @@ class CVAE(chainer.Chain):
 
         a_vae_loss = F.log(2 * 3.14 * F.flatten(outputs_sigma_2))
         a_vae_loss = 0.5 * F.sum(a_vae_loss)
-
-        """
-        kl_loss = 1 + ln_var - F.square(mu) - F.exp(ln_var)
-        kl_loss = F.sum(kl_loss, axis=-1)
-        kl_loss *= -0.5
-        """
 
         d_vae_loss = F.gaussian_kl_divergence(mu, ln_var)
 
