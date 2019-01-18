@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-"""Chainer example: train a VAE on MNIST
+"""
+Reference
+https://github.com/crcrpar/chainer-VAE
+https://github.com/chainer/chainer/tree/master/examples/vae
+https://qiita.com/shinmura0/items/811d01384e20bfd1e035
 """
 from __future__ import print_function
 import argparse

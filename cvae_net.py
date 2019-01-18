@@ -1,11 +1,8 @@
 """
-Copyright Kunihiko Miyoshi, Preferred Networks Inc.
-MIT License
-
 Reference
-https://github.com/pfnet/chainer/blob/master/examples/vae/net.py
-https://github.com/crcrpar/chainer-VAE
-https://github.com/mlosch/CVAE-Torch/blob/master/CVAE.lua
+https://qiita.com/shinmura0/items/811d01384e20bfd1e035
+https://confit.atlas.jp/guide/event-img/jsai2018/2A1-03/public/pdf?type=in
+https://gist.github.com/colspan/bb029025881ddcdce9f70838aff4aa82
 """
 
 import six
