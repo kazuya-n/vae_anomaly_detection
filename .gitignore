@@ -6,3 +6,4 @@
 !.gitignore
 !train.py
 !cvae_net.py
+!README.md
