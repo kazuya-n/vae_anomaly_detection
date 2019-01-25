@@ -11,32 +11,29 @@ import os
 
 import matplotlib
 # Disable interactive backend
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 
 import numpy as np
 import pandas as pd
-import six
 
 import chainer
 from chainer import cuda, training
-from chainer import training
-from chainer.training import extensions, Trainer
+from chainer.training import extensions
 import chainer.functions as F
 
 import cvae_net
 
-import os
 import PIL
-from PIL import Image, ImageFilter
 
 from tqdm import tqdm
 
+matplotlib.use('Agg')
 # Size of cutting image
 CutSize = 16
 # Path of dataset folder
 Path = "images/"
+
 
 # Make datasets from image
 def road_data():
@@ -46,31 +43,33 @@ def road_data():
     with tqdm(total=len(list(d.iterrows()))) as pbar:
         for i, data in tqdm(d.itertuples()):
             pil_img = PIL.Image.open(Path + data)
-            img = np.array(pil_img.resize((240,180)).convert("L"))
+            img = np.array(pil_img.resize((240, 180)).convert("L"))
             imarray = img.astype(np.float32) / 255.
             train.append((imarray))
             pbar.update(1)
     train = np.array(train)
     train = train.reshape(1000, 180, 240, 1)
     print(f"Done, {train.shape}")
-    
+
     return train
 
-def cut_img(x, number, width = CutSize, height = CutSize):
+
+def cut_img(x, number, width=CutSize, height=CutSize):
     print("cutting images ...")
     x_out = []
     x_shape = x.shape
-    
+
     for i in tqdm(range(number)):
-        shape_0 = np.random.randint(0,x_shape[0])
-        shape_1 = np.random.randint(0,x_shape[1]-height)
-        shape_2 = np.random.randint(0,x_shape[2]-width)
+        shape_0 = np.random.randint(0, x_shape[0])
+        shape_1 = np.random.randint(0, x_shape[1]-height)
+        shape_2 = np.random.randint(0, x_shape[2]-width)
         temp = x[shape_0, shape_1:shape_1+height, shape_2:shape_2+width, 0]
         x_out.append(temp.reshape((height, width, x_shape[3])))
     print("Complete.")
     out = np.array(x_out)
 
     return out
+
 
 def save_img(x_anomaly, img_anomaly, name):
     path = 'results/'
@@ -80,20 +79,20 @@ def save_img(x_anomaly, img_anomaly, name):
     img_min = img_anomaly.min()
     img_anomaly = (img_anomaly-img_min)/(img_max-img_min) * 9 + 1
 
-    plt.subplot(2,1,1)
+    plt.subplot(2, 1, 1)
     print(img_anomaly.shape)
-    plt.imshow(x_anomaly[0,:,:], cmap='gray')
+    plt.imshow(x_anomaly[0, :, :], cmap='gray')
     plt.axis('off')
     plt.colorbar()
 
-    plt.subplot(2,1,2)
-    plt.imshow(img_anomaly[0,0,:,:], cmap='Blues',norm=colors.LogNorm())
+    plt.subplot(2, 1, 2)
+    plt.imshow(img_anomaly[0, 0, :, :], cmap='Blues', norm=colors.LogNorm())
     plt.axis('off')
     plt.colorbar()
 
     plt.clim(1, 10)
 
-    plt.savefig(path + name +".png")
+    plt.savefig(path + name + ".png")
 
     plt.close()
 
@@ -118,17 +117,13 @@ def main():
     parser.add_argument
     args = parser.parse_args()
 
-    batchsize = args.batchsize
-    n_epoch = args.epoch
-    n_latent = args.dimz
-
     print('GPU: {}'.format(args.gpu))
     print('# dim z: {}'.format(args.dimz))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
 
-    model = cvae_net.CVAE(1, 16, n_latent, 16)
+    model = cvae_net.CVAE(1, 16, args.dimz, 16)
     if args.gpu >= 0:
         cuda.get_device(args.gpu).use()
         model.to_gpu()
@@ -137,24 +132,24 @@ def main():
     # Setup optimizer
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
-    
-    # Prepare Dataset 
+
+    # Prepare Dataset
     data = road_data().astype(np.float32)
     # Prepare test(not separated) images
-    test_img = data[950:1000,:,:,:]
-    test_img = np.transpose(test_img, (0,3,1,2))
+    test_img = data[950:1000, :, :, :]
+    test_img = np.transpose(test_img, (0, 3, 1, 2))
     # Prepare separated images
     data = cut_img(data, 1000000)
-    data = np.transpose(data, (0,3,1,2))
+    data = np.transpose(data, (0, 3, 1, 2))
     train, test = chainer.datasets.split_dataset(data, 999900)
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
-        repeat=False, shuffle=False)
+                                                 repeat=False, shuffle=False)
     # Set up a trainer
     updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
-        # Evaluate the model with the test dataset for each epoch
+    # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
 
     # Dump a computational graph from 'loss' variable at the first iteration
@@ -164,13 +159,14 @@ def main():
         trainer.extend(extensions.dump_graph('main/loss'))
 
     # Take a snapshot at each epoch
-    trainer.extend(extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}'), trigger=(args.interval, 'epoch'))
+    trainer.extend(extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}'),
+                   trigger=(args.interval, 'epoch'))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())
     # if you want to output different log files epoch by epoch,
     # use below statement.
-    #trainer.extend(extensions.LogReport(log_name='log_'+'{epoch}'))
+    # trainer.extend(extensions.LogReport(log_name='log_'+'{epoch}'))
 
     # Print selected entries of the log to stdout
     # Here "main" refers to the target link of the "main" optimizer again, and
@@ -206,19 +202,21 @@ def main():
             # Encoding
             x_batch = chainer.Variable(x_batch)
             mu, ln_var = model.encode(x_batch)
-            z = F.gaussian(mu, ln_var)      
+            z = F.gaussian(mu, ln_var)
             mu, sigma = model.decode(z)
             # Evaluate anormaly to calculate loss
             batch_index = 0
             for i in tqdm(range(int((image.shape[1]-height)/move)+1)):
-                for j in range(int((image.shape[2]-width)/move)+1):  
-                    loss = 0.5 * (x_batch[batch_index,0,:,:] - mu[batch_index,0,:,:])**2 / sigma[batch_index,0,:,:]
+                for j in range(int((image.shape[2]-width)/move)+1):
+                    loss = 0.5 * (x_batch[batch_index, 0, :, :] - mu[batch_index, 0, :, :])**2 / sigma[batch_index, 0, :, :]
                     loss = F.sum(loss)
                     img_anomaly[0, 0, i*move:i*move+height, j*move:j*move+width] += loss.data
                     batch_index += 1
             # Saving
-            save_img(chainer.cuda.to_cpu(image), chainer.cuda.to_cpu(img_anomaly), f"{index}_{trainer.updater.epoch}")
-    
+            save_img(chainer.cuda.to_cpu(image),
+                     chainer.cuda.to_cpu(img_anomaly),
+                     f"{index}_{trainer.updater.epoch}")
+
     trainer.extend(save_images)
 
     if args.resume:

@@ -5,11 +5,8 @@ https://confit.atlas.jp/guide/event-img/jsai2018/2A1-03/public/pdf?type=in
 https://gist.github.com/colspan/bb029025881ddcdce9f70838aff4aa82
 """
 
-import six
-
 import chainer
 import chainer.functions as F
-from chainer.functions.loss.vae import gaussian_kl_divergence
 import chainer.links as L
 
 
@@ -27,16 +24,19 @@ class CVAE(chainer.Chain):
         """
         """
         !! Network Requirment!!
-        Source : https://confit.atlas.jp/guide/event-img/jsai2018/2A1-03/public/pdf?type=in
+        Source :
+            https://confit.atlas.jp/guide/event-img/jsai2018/2A1-03/public/pdf?type=in
 
         memo:
-        Convolution2D(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
-        
+        Convolution2D(self, in_channels, out_channels, ksize=None, stride=1,
+            pad=0, nobias=False, initialW=None, initial_bias=None, *,
+            dilate=1, groups=1)
+
         Init channel = Nc
         Dimension pf z = Nz
-        
+
         In Layer n
-        
+
         # ksize(Size of kernel) = (4, 4)
         # stride = 2
         # channel = Nc * 2**(n-1)
@@ -44,7 +44,7 @@ class CVAE(chainer.Chain):
         # activation = ReLU
 
         Output Layer
-        
+
         # unit = 2 * Nz
         # # unit of mu = Nz
         # # unit of ln_sigma_2 = Nz
@@ -56,27 +56,27 @@ class CVAE(chainer.Chain):
             e_c1=L.Convolution2D(n_ch * 1, n_ch * 2, 4, 2, 1, initialW=w),
             e_c2=L.Convolution2D(n_ch * 2, n_ch * 4, 4, 2, 1, initialW=w),
             e_c3=L.Convolution2D(n_ch * 4, n_ch * 8, 4, 2, 1, initialW=w),
-            
+
             e_bn0=L.BatchNormalization(n_ch, use_gamma=False),
             e_bn1=L.BatchNormalization(n_ch * 2, use_gamma=False),
             e_bn2=L.BatchNormalization(n_ch * 4, use_gamma=False),
             e_bn3=L.BatchNormalization(n_ch * 8, use_gamma=False),
-            
+
             z_mu=L.Linear(n_ch * 8, latent_dim),
             z_ln_var=L.Linear(n_ch * 8, latent_dim),
-            
+
             d_c0=L.Linear(n_ch*8),
             d_c1=L.Deconvolution2D(n_ch * 8, n_ch * 4, 4, 2, 1, initialW=w),
             d_c2=L.Deconvolution2D(n_ch * 4, n_ch * 2, 4, 2, 1, initialW=w),
             d_c3=L.Deconvolution2D(n_ch * 2, n_ch * 1, 4, 2, 1, initialW=w),
-            
+
             d_x1=L.Deconvolution2D(n_ch, c_ch, 4, 2, 1, initialW=w),
             d_x2=L.Deconvolution2D(n_ch, c_ch, 4, 2, 1, initialW=w),
-            
+
             d_bn0=L.BatchNormalization(n_ch * 4, use_gamma=False),
             d_bn1=L.BatchNormalization(n_ch * 2, use_gamma=False),
             d_bn2=L.BatchNormalization(n_ch * 1, use_gamma=False),
-            
+
             d_bnx1=L.BatchNormalization(c_ch, use_gamma=False),
             d_bnx2=L.BatchNormalization(c_ch, use_gamma=False),
         )
@@ -87,21 +87,21 @@ class CVAE(chainer.Chain):
     def __call__(self, x):
         """AutoEncoder"""
         mu, ln_var = self.encode(x)
-        batchsize = len(mu.data)
         # reconstruction loss
         z = F.gaussian(mu, ln_var)
         outputs_mu, outputs_sigma_2 = self.decode(z)
-        
+
         a_vae_loss = F.log(2 * 3.14 * F.flatten(outputs_sigma_2))
         a_vae_loss = 0.5 * F.sum(a_vae_loss)
-        
-        m_vae_loss = (F.flatten(x) - F.flatten(outputs_mu))**2 / F.flatten(outputs_sigma_2)
+
+        m_vae_loss = (F.flatten(x) - F.flatten(outputs_mu))**2 \
+            / F.flatten(outputs_sigma_2)
         m_vae_loss = 0.5 * F.sum(m_vae_loss)
 
         d_vae_loss = F.gaussian_kl_divergence(mu, ln_var)
-        
+
         loss = F.mean(d_vae_loss + m_vae_loss + a_vae_loss)
-        
+
         chainer.report({'loss': loss}, self)
         return loss
 
@@ -153,12 +153,12 @@ class CVAE(chainer.Chain):
     def lf(self, x):
         """AutoEncoder"""
         mu, ln_var = self.encode(x)
-        batchsize = len(mu.data)
         # reconstruction loss
         z = F.gaussian(mu, ln_var)
         outputs_mu, outputs_sigma_2 = self.decode(z)
-        
-        m_vae_loss = (F.flatten(x) - F.flatten(outputs_mu))**2 / F.flatten(outputs_sigma_2)
+
+        m_vae_loss = (F.flatten(x) - F.flatten(outputs_mu))**2 \
+            / F.flatten(outputs_sigma_2)
         m_vae_loss = 0.5 * F.sum(m_vae_loss)
 
         a_vae_loss = F.log(2 * 3.14 * F.flatten(outputs_sigma_2))
